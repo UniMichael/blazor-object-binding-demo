@@ -1,0 +1,56 @@
+﻿@using BlazorComplexObjectBinding.Models
+<div class="project-container">
+    <div class="header">
+        <input type="text" @bind:get="@(Project.Name)" @bind:set="@(HandleProjectNameChangedAsync)" />
+        <button @onclick="@(AddBoardAsync)">Add board</button>
+    </div>
+    <div>
+        When a board's work item names are synced, changing the name of any of its work items will rename all work items
+        that are inside a synced board to the same thing (this works across boards as well).
+    </div>
+    <div>
+        This serves no other purpose than to showcase that a component hierarchy can respond to state mutations by
+        mutating a different part of its state.
+    </div>
+    <div class="boards">
+        @foreach (var board in Project.Boards)
+        {
+            <BoardComponent @bind-Board:get="board" @bind-Board:set="HandleBoardChangedAsync" OnSyncedNameChange="HandleSyncedNameChangedAsync"/>
+        }
+    </div>
+</div>
+
+@code {
+
+    [Parameter]
+    public Project Project { get; set; } = null!;
+    
+    [Parameter]
+    public EventCallback<Project> ProjectChanged { get; set; }
+    
+    private async Task AddBoardAsync()
+    {
+        var board = new Board(Guid.NewGuid(), "My new board", false, []);
+        Project.Boards.Add(board);
+        await ProjectChanged.InvokeAsync(Project);
+    }
+
+    private async Task HandleProjectNameChangedAsync(string name)
+    {
+        Project.Name = name;
+        await ProjectChanged.InvokeAsync(Project);
+    }
+
+    private async Task HandleBoardChangedAsync(Board board) => 
+        await ProjectChanged.InvokeAsync(Project);
+
+    private async Task HandleSyncedNameChangedAsync(string syncedName)
+    {
+        foreach (var workItem in Project.Boards.Where(board => board.Synced).SelectMany(board => board.WorkItems))
+        {
+            workItem.Name = syncedName;
+        }
+
+        await ProjectChanged.InvokeAsync(Project);
+    }
+}

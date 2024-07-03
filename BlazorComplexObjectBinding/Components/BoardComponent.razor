@@ -1,0 +1,74 @@
+﻿@using BlazorComplexObjectBinding.Models
+<div class="board-container">
+    <div class="header">
+        <input type="text" @bind:get="@(Board.Name)" @bind:set="@(HandleBoardNameChangedAsync)" />
+    </div>
+    <div class="work-items">
+        <button @onclick="@(AddWorkItemAsync)">Add work item</button>
+        <button @onclick="@(CheckAllWorkItemsAsync)">Check all</button>
+        <label>
+            <input type="checkbox" @bind:get="Board.Synced" @bind:set="HandleBoardSyncedChangedAsync"/>
+            Sync work item name changes (across-boards too)
+        </label>
+        @foreach (var workItem in Board.WorkItems)
+        {
+            <WorkItemComponent @bind-WorkItem:get="workItem" @bind-WorkItem:set="HandleWorkItemChangedAsync"/>
+        }
+    </div>
+</div>
+
+@code {
+
+    [Parameter]
+    public Board Board { get; set; } = null!;
+    
+    [Parameter]
+    public EventCallback<Board> BoardChanged { get; set; }
+    
+    [Parameter]
+    public EventCallback<string> OnSyncedNameChange { get; set; }
+
+    private List<string> _originalWorkItemNames = [];
+
+    protected override void OnParametersSet() => 
+        _originalWorkItemNames = Board.WorkItems.Select(workItem => workItem.Name).ToList();
+
+    private async Task AddWorkItemAsync()
+    {
+        var workItem = new WorkItem(Guid.NewGuid(), "New work item");
+        Board.WorkItems.Add(workItem);
+        await BoardChanged.InvokeAsync(Board);
+    }
+
+    private async Task HandleBoardSyncedChangedAsync(bool synced)
+    {
+        Board.Synced = synced;
+        await BoardChanged.InvokeAsync(Board);
+    }
+
+    private async Task CheckAllWorkItemsAsync()
+    {
+        foreach (var workItem in Board.WorkItems)
+        {
+            workItem.Done = true;
+        }
+        await BoardChanged.InvokeAsync(Board);
+    }
+    
+    private async Task HandleBoardNameChangedAsync(string name)
+    {
+        Board.Name = name;
+        await BoardChanged.InvokeAsync(Board);
+    }
+
+    private async Task HandleWorkItemChangedAsync(WorkItem workItem)
+    {
+        var index = Board.WorkItems.IndexOf(workItem);
+        if (index >= 0 && _originalWorkItemNames[index] != workItem.Name)
+        {
+            await OnSyncedNameChange.InvokeAsync(workItem.Name);
+        }
+        await BoardChanged.InvokeAsync(Board);
+    }
+
+}

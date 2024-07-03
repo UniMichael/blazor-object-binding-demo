@@ -1,0 +1,40 @@
+﻿@using BlazorComplexObjectBinding.Models
+<div class="work-item-container">
+    <div class="side">
+        <input type="checkbox" @bind:get="@(WorkItem.Done)" @bind:set="@(HandleDoneChangedAsync)" />
+    </div>
+    <div class="header">
+        <input type="text" @bind:get="@(WorkItem.Name)" @bind:set="@(HandleNameChangedAsync)" />
+    </div>
+    <div class="body">
+        <textarea @bind:get="@(WorkItem.Description)" @bind:set="@(HandleDescriptionChangedAsync)"></textarea>
+    </div>
+</div>
+
+@code {
+
+    [Parameter]
+    public WorkItem WorkItem { get; set; } = null!;
+    
+    [Parameter]
+    public EventCallback<WorkItem> WorkItemChanged { get; set; }
+
+    private async Task HandleDoneChangedAsync(bool done)
+    {
+        WorkItem.Done = done;
+        await WorkItemChanged.InvokeAsync(WorkItem);
+    }
+
+    private async Task HandleNameChangedAsync(string name)
+    {
+        WorkItem.Name = name;
+        await WorkItemChanged.InvokeAsync(WorkItem);
+    }
+
+    private async Task HandleDescriptionChangedAsync(string description)
+    {
+        WorkItem.Description = description;
+        await WorkItemChanged.InvokeAsync(WorkItem);
+    }
+
+}
